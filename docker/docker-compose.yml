@@ -1,0 +1,65 @@
+# docker-compose.yml
+# Levanta TODO el sistema FastBite (microservicios + RabbitMQ) con un solo comando:
+#   docker-compose up --build
+# Los Dockerfiles viven en docker/ y copian cada subcarpeta de servicio.
+# Puertos internos 800x (como en los Dockerfiles); se publican en el host en 810x.
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  users-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.users-service
+    ports:
+      - "8101:8001"
+
+  menu-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.menu-service
+    ports:
+      - "8102:8002"
+
+  orders-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.orders-service
+    ports:
+      - "8103:8003"
+    depends_on:
+      - rabbitmq
+      - users-service
+      - menu-service
+    environment:
+      - USERS_SERVICE_URL=http://users-service:8001
+      - MENU_SERVICE_URL=http://menu-service:8002
+      - RABBITMQ_HOST=rabbitmq
+
+  notifications-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.notifications-service
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+
+  gateway-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway-service
+    ports:
+      - "8100:8000"
+    depends_on:
+      - users-service
+      - menu-service
+      - orders-service
+    environment:
+      - USERS_SERVICE_URL=http://users-service:8001
+      - MENU_SERVICE_URL=http://menu-service:8002
+      - ORDERS_SERVICE_URL=http://orders-service:8003

@@ -1,0 +1,12 @@
+# docker/Dockerfile.notifications-service
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY notifications-service/requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY notifications-service/ .
+
+CMD ["python", "main.py"]
